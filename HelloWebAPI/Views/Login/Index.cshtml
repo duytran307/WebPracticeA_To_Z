@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>The First Web API Demo</title>
+
+    <script src="~/js/jquery-3.2.1.js"></script>
+
+</head>
+<body>
+    <div>
+        <h1>The First Web API Demo</h1>
+        <div id="LoginInfor">
+
+            <div>User Name <input type="text" id="txtUserName" /></div>
+            <div>Password  <input type="password" id="txtPassword" /></div>
+        </div>
+        <div>
+            <input type="button" id="btnSignIn" value="Sign in" />
+            <input type="button" id="btnSignOut" value="Log out" />
+            <input type="button" id="btnGetUSerList" value="User List" />
+        </div>
+        <div id="result">
+            <table id="tblData">
+                <thead>
+                    <tr>
+                        <th>User Name</th>
+                        <th>Password</th>
+                    </tr>
+                </thead>
+                <tbody id="tblBodyData">
+
+                </tbody>
+            </table>
+        </div>
+        <div id="token"></div>
+    </div>
+    <script>
+        $(document).ready(function () {
+            $("#btnGetUSerList").hide();
+            $("#btnSignOut").hide();
+            $('#tblData').hide();
+
+        });
+        $(function () {
+            $("#btnSignIn").click(function () {
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("Create", "Token")',
+                    data: JSON.stringify({ "Username": $("#txtUserName").val(), "Password": $("#txtPassword").val() }),
+                    contentType: "application/json"
+                }).done(function (data, statusText, xhdr) {
+                    if (typeof(Storage) !== "undefined") {
+                        localStorage.setItem("tokenvalue", data);
+                        $("#LoginInfor").hide();
+                        $("#btnSignIn").hide();
+                       
+                        //show
+                        $("#btnSignOut").show();
+                        $("#btnGetUSerList").show();
+
+                    } else {
+                        window.location.href = "/Login";
+                        Console.errorText = "Sorry! No Web Storage support.."
+                }
+                }).fail(function (xhdr, statusText, errorText) {
+                    $("#token").text(errorText);
+                });
+            });
+
+
+            $("#btnGetUSerList").click(function () {
+                $.ajax({
+                    method: 'GET',
+                    url: '@Url.Action("GetUserList", "Token")',
+                    beforeSend: function (xhdr) {
+                        xhdr.setRequestHeader("Authorization", "Bearer " + localStorage.getItem("tokenvalue") );
+                    }
+                }).done(function (data, statusText, xhdr) {
+                    $('#tblData').show();
+                    $.each(data, function (index, value) {
+                        var row = $('<tr><td>' + value.userID + '</td><td>' + value.password + '</td></tr>');
+                        $('#tblData').append(row);
+                    } );
+                }).fail(function (xhdr, statusText, errorText) {
+                    $("#result").text(JSON.stringify(xhdr));
+                });
+            });
+
+            $("#btnSignOut").click(function () {
+                localStorage.removeItem("tokenvalue");
+                window.location.href = "/Login";
+            });
+        });
+    </script>
+</body>
+</html>
